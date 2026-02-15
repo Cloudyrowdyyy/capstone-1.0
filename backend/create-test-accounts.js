@@ -2,7 +2,7 @@ import { MongoClient } from 'mongodb'
 import bcrypt from 'bcryptjs'
 
 const MONGO_URL = 'mongodb://localhost:27017'
-const DB_NAME = 'guard-firearm-management'
+const DB_NAME = 'login_app'
 
 async function createTestAccounts() {
   const client = new MongoClient(MONGO_URL)
