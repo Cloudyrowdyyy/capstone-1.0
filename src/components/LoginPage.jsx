@@ -6,6 +6,10 @@ export default function LoginPage({ onLogin }) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [username, setUsername] = useState('')
+  const [fullName, setFullName] = useState('')
+  const [phoneNumber, setPhoneNumber] = useState('')
+  const [licenseNumber, setLicenseNumber] = useState('')
+  const [licenseExpiryDate, setLicenseExpiryDate] = useState('')
   const [role, setRole] = useState('user')
   const [adminCode, setAdminCode] = useState('')
   const [error, setError] = useState('')
@@ -58,6 +62,13 @@ export default function LoginPage({ onLogin }) {
           return
         }
 
+        // Validate security guard fields
+        if (!fullName || !phoneNumber || !licenseNumber || !licenseExpiryDate) {
+          setError('All security guard details are required')
+          setIsLoading(false)
+          return
+        }
+
         if (!email.endsWith('@gmail.com')) {
           setError('You must use a Gmail account (email must end with @gmail.com)')
           setIsLoading(false)
@@ -86,7 +97,17 @@ export default function LoginPage({ onLogin }) {
         const response = await fetch('http://localhost:5000/api/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password, username, role, adminCode })
+          body: JSON.stringify({ 
+            email, 
+            password, 
+            username, 
+            role, 
+            adminCode,
+            fullName,
+            phoneNumber,
+            licenseNumber,
+            licenseExpiryDate
+          })
         })
 
         if (!response.ok) {
@@ -104,6 +125,10 @@ export default function LoginPage({ onLogin }) {
           setEmail('')
           setPassword('')
           setUsername('')
+          setFullName('')
+          setPhoneNumber('')
+          setLicenseNumber('')
+          setLicenseExpiryDate('')
           setAdminCode('')
           setIsLoading(false)
           return
@@ -241,6 +266,61 @@ export default function LoginPage({ onLogin }) {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="Enter your username"
+                disabled={isLoading}
+              />
+            </div>
+          )}
+
+          {isRegistering && (
+            <div className="form-group">
+              <label htmlFor="fullName">Full Name</label>
+              <input
+                id="fullName"
+                type="text"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                placeholder="Enter your full name"
+                disabled={isLoading}
+              />
+            </div>
+          )}
+
+          {isRegistering && (
+            <div className="form-group">
+              <label htmlFor="phoneNumber">Phone Number</label>
+              <input
+                id="phoneNumber"
+                type="tel"
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value)}
+                placeholder="Enter your phone number"
+                disabled={isLoading}
+              />
+            </div>
+          )}
+
+          {isRegistering && (
+            <div className="form-group">
+              <label htmlFor="licenseNumber">License Number</label>
+              <input
+                id="licenseNumber"
+                type="text"
+                value={licenseNumber}
+                onChange={(e) => setLicenseNumber(e.target.value)}
+                placeholder="Enter your license number"
+                disabled={isLoading}
+              />
+            </div>
+          )}
+
+          {isRegistering && (
+            <div className="form-group">
+              <label htmlFor="licenseExpiryDate">License Expiry Date</label>
+              <input
+                id="licenseExpiryDate"
+                type="date"
+                value={licenseExpiryDate}
+                onChange={(e) => setLicenseExpiryDate(e.target.value)}
                 disabled={isLoading}
               />
             </div>

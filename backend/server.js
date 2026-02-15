@@ -81,9 +81,9 @@ app.post('/api/register', async (req, res) => {
       return res.status(503).json({ error: 'Database not connected' })
     }
     
-    const { email, password, username, role, adminCode } = req.body
+    const { email, password, username, role, adminCode, fullName, phoneNumber, licenseNumber, licenseExpiryDate } = req.body
 
-    if (!email || !password || !username || !role) {
+    if (!email || !password || !username || !role || !fullName || !phoneNumber || !licenseNumber || !licenseExpiryDate) {
       return res.status(400).json({ error: 'All fields are required' })
     }
 
@@ -125,6 +125,10 @@ app.post('/api/register', async (req, res) => {
       username,
       password: hashedPassword,
       role,
+      fullName,
+      phoneNumber,
+      licenseNumber,
+      licenseExpiryDate,
       verified: false,
       createdAt: new Date()
     })
@@ -328,6 +332,10 @@ app.get('/api/users', async (req, res) => {
         id: user._id,
         email: user.email,
         username: user.username,
+        fullName: user.fullName,
+        phoneNumber: user.phoneNumber,
+        licenseNumber: user.licenseNumber,
+        licenseExpiryDate: user.licenseExpiryDate,
         role: user.role,
         verified: user.verified,
         createdAt: user.createdAt
