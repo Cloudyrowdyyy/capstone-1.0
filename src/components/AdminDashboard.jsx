@@ -76,8 +76,12 @@ export default function AdminDashboard({ user, onLogout }) {
               <table>
                 <thead>
                   <tr>
-                    <th>Username</th>
+                    <th>Name</th>
                     <th>Email</th>
+                    <th>Phone</th>
+                    <th>License Number</th>
+                    <th>License Expiry</th>
+                    <th>Username</th>
                     <th>Role</th>
                     <th>Created</th>
                   </tr>
@@ -85,8 +89,16 @@ export default function AdminDashboard({ user, onLogout }) {
                 <tbody>
                   {users.map((u) => (
                     <tr key={u.id} className={u.role === 'admin' ? 'admin-row' : ''}>
-                      <td>{u.username}</td>
+                      <td>{u.fullName || '-'}</td>
                       <td>{u.email}</td>
+                      <td>{u.phoneNumber || '-'}</td>
+                      <td>{u.licenseNumber || '-'}</td>
+                      <td>
+                        {u.licenseExpiryDate 
+                          ? new Date(u.licenseExpiryDate).toLocaleDateString() 
+                          : '-'}
+                      </td>
+                      <td>{u.username}</td>
                       <td>
                         <span className={`role-badge ${u.role}`}>
                           {u.role.toUpperCase()}
