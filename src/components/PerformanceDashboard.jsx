@@ -116,7 +116,7 @@ export default function PerformanceDashboard({ user, onLogout, onViewChange }) {
       <div className="performance-box">
         <div className="performance-header">
           <div className="header-left">
-            <Logo />
+            <Logo onClick={() => onViewChange('users')} />
             <h1>Guard Performance Management</h1>
           </div>
           <div className="header-right">
