@@ -16,6 +16,11 @@ let usersCollection
 let verificationCollection
 let attendanceCollection
 let feedbackCollection
+let firearmsCollection
+let firearmAllocationsCollection
+let guardFirearmPermitsCollection
+let firearmMaintenanceCollection
+let allocationAlertsCollection
 
 // Email configuration
 const transporter = nodemailer.createTransport({
@@ -71,6 +76,11 @@ async function connectDB() {
     verificationCollection = db.collection('verifications')
     attendanceCollection = db.collection('attendance')
     feedbackCollection = db.collection('feedback')
+    firearmsCollection = db.collection('firearms')
+    firearmAllocationsCollection = db.collection('firearm_allocations')
+    guardFirearmPermitsCollection = db.collection('guard_firearm_permits')
+    firearmMaintenanceCollection = db.collection('firearm_maintenance')
+    allocationAlertsCollection = db.collection('allocation_alerts')
   } catch (error) {
     console.warn('⚠ MongoDB connection failed:', error.message)
     console.warn('⚠ Running in offline mode - database features disabled')
@@ -713,6 +723,524 @@ app.get('/api/performance/guards/:id', async (req, res) => {
           submittedAt: f.submittedAt
         }))
       }
+    })
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// ============ FIREARM MANAGEMENT ENDPOINTS ============
+
+// Add new firearm to inventory
+app.post('/api/firearms', async (req, res) => {
+  try {
+    if (!firearmsCollection) {
+      return res.status(503).json({ error: 'Database not connected' })
+    }
+
+    const { serialNumber, model, condition, status } = req.body
+
+    if (!serialNumber || !model || !condition || !status) {
+      return res.status(400).json({ error: 'All fields are required' })
+    }
+
+    // Check if serial number already exists
+    const existing = await firearmsCollection.findOne({ serialNumber })
+    if (existing) {
+      return res.status(400).json({ error: 'Firearm with this serial number already exists' })
+    }
+
+    const result = await firearmsCollection.insertOne({
+      serialNumber,
+      model,
+      condition,
+      status,
+      createdAt: new Date(),
+      lastMaintenanceDate: null,
+      currentAllocationId: null
+    })
+
+    res.status(201).json({
+      message: 'Firearm added successfully',
+      firearmId: result.insertedId
+    })
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// Get all firearms
+app.get('/api/firearms', async (req, res) => {
+  try {
+    if (!firearmsCollection) {
+      return res.status(503).json({ error: 'Database not connected' })
+    }
+
+    const firearms = await firearmsCollection.find({}).toArray()
+
+    res.json({
+      total: firearms.length,
+      firearms: firearms.map(f => ({
+        id: f._id,
+        serialNumber: f.serialNumber,
+        model: f.model,
+        condition: f.condition,
+        status: f.status,
+        currentAllocationId: f.currentAllocationId,
+        lastMaintenanceDate: f.lastMaintenanceDate,
+        createdAt: f.createdAt
+      }))
+    })
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// Get single firearm details
+app.get('/api/firearms/:id', async (req, res) => {
+  try {
+    if (!firearmsCollection || !firearmAllocationsCollection) {
+      return res.status(503).json({ error: 'Database not connected' })
+    }
+
+    const { ObjectId } = await import('mongodb')
+    const firearm = await firearmsCollection.findOne({ _id: new ObjectId(req.params.id) })
+
+    if (!firearm) {
+      return res.status(404).json({ error: 'Firearm not found' })
+    }
+
+    // Get allocation history
+    const allocationHistory = await firearmAllocationsCollection
+      .find({ firearmId: firearm._id })
+      .sort({ issuedAt: -1 })
+      .limit(20)
+      .toArray()
+
+    res.json({
+      firearm: {
+        id: firearm._id,
+        serialNumber: firearm.serialNumber,
+        model: firearm.model,
+        condition: firearm.condition,
+        status: firearm.status,
+        currentAllocationId: firearm.currentAllocationId,
+        lastMaintenanceDate: firearm.lastMaintenanceDate,
+        createdAt: firearm.createdAt
+      },
+      allocationHistory: allocationHistory.map(a => ({
+        id: a._id,
+        guardId: a.guardId,
+        issuedAt: a.issuedAt,
+        returnedAt: a.returnedAt,
+        status: a.status
+      }))
+    })
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// Update firearm condition/status
+app.put('/api/firearms/:id', async (req, res) => {
+  try {
+    if (!firearmsCollection) {
+      return res.status(503).json({ error: 'Database not connected' })
+    }
+
+    const { ObjectId } = await import('mongodb')
+    const { condition, status } = req.body
+
+    const updateData = {}
+    if (condition) updateData.condition = condition
+    if (status) updateData.status = status
+
+    const result = await firearmsCollection.updateOne(
+      { _id: new ObjectId(req.params.id) },
+      { $set: updateData }
+    )
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ error: 'Firearm not found' })
+    }
+
+    res.json({ message: 'Firearm updated successfully' })
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// Delete firearm (only if not allocated)
+app.delete('/api/firearms/:id', async (req, res) => {
+  try {
+    if (!firearmsCollection || !firearmAllocationsCollection) {
+      return res.status(503).json({ error: 'Database not connected' })
+    }
+
+    const { ObjectId } = await import('mongodb')
+    const firearmId = new ObjectId(req.params.id)
+
+    // Check if firearm is currently allocated
+    const allocation = await firearmAllocationsCollection.findOne({
+      firearmId,
+      returnedAt: null
+    })
+
+    if (allocation) {
+      return res.status(400).json({ error: 'Cannot delete firearm that is currently allocated' })
+    }
+
+    const result = await firearmsCollection.deleteOne({ _id: firearmId })
+
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ error: 'Firearm not found' })
+    }
+
+    res.json({ message: 'Firearm deleted successfully' })
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// ===== Guard Firearm Permits =====
+
+// Add/update guard firearm permit
+app.post('/api/guard-firearm-permits', async (req, res) => {
+  try {
+    if (!guardFirearmPermitsCollection || !usersCollection) {
+      return res.status(503).json({ error: 'Database not connected' })
+    }
+
+    const { guardId, permitNumber, trainingDate, expiryDate } = req.body
+
+    if (!guardId || !permitNumber || !trainingDate || !expiryDate) {
+      return res.status(400).json({ error: 'All fields are required' })
+    }
+
+    const { ObjectId } = await import('mongodb')
+
+    // Check if guard exists
+    const guard = await usersCollection.findOne({ _id: new ObjectId(guardId) })
+    if (!guard) {
+      return res.status(404).json({ error: 'Guard not found' })
+    }
+
+    // Check if permit already exists
+    const existing = await guardFirearmPermitsCollection.findOne({ guardId: new ObjectId(guardId) })
+
+    if (existing) {
+      // Update existing permit
+      const result = await guardFirearmPermitsCollection.updateOne(
+        { guardId: new ObjectId(guardId) },
+        { $set: { permitNumber, trainingDate: new Date(trainingDate), expiryDate: new Date(expiryDate), updatedAt: new Date() } }
+      )
+      return res.json({ message: 'Permit updated successfully' })
+    }
+
+    // Create new permit
+    const result = await guardFirearmPermitsCollection.insertOne({
+      guardId: new ObjectId(guardId),
+      permitNumber,
+      trainingDate: new Date(trainingDate),
+      expiryDate: new Date(expiryDate),
+      status: 'active',
+      createdAt: new Date()
+    })
+
+    res.status(201).json({
+      message: 'Permit added successfully',
+      permitId: result.insertedId
+    })
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// Get guard firearm permit
+app.get('/api/guard-firearm-permits/:guardId', async (req, res) => {
+  try {
+    if (!guardFirearmPermitsCollection) {
+      return res.status(503).json({ error: 'Database not connected' })
+    }
+
+    const { ObjectId } = await import('mongodb')
+    const permit = await guardFirearmPermitsCollection.findOne({ guardId: new ObjectId(req.params.guardId) })
+
+    if (!permit) {
+      return res.status(404).json({ error: 'No permit found for this guard' })
+    }
+
+    const isExpired = new Date() > new Date(permit.expiryDate)
+
+    res.json({
+      id: permit._id,
+      guardId: permit.guardId,
+      permitNumber: permit.permitNumber,
+      trainingDate: permit.trainingDate,
+      expiryDate: permit.expiryDate,
+      status: isExpired ? 'expired' : 'active',
+      isExpired
+    })
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// ===== Firearm Allocation =====
+
+// Issue firearm to guard
+app.post('/api/firearm-allocation/issue', async (req, res) => {
+  try {
+    if (!firearmAllocationsCollection || !firearmsCollection || !guardFirearmPermitsCollection || !usersCollection) {
+      return res.status(503).json({ error: 'Database not connected' })
+    }
+
+    const { firearmId, guardId, notes } = req.body
+
+    if (!firearmId || !guardId) {
+      return res.status(400).json({ error: 'Firearm ID and Guard ID are required' })
+    }
+
+    const { ObjectId } = await import('mongodb')
+
+    // Verify guard exists
+    const guard = await usersCollection.findOne({ _id: new ObjectId(guardId) })
+    if (!guard) {
+      return res.status(404).json({ error: 'Guard not found' })
+    }
+
+    // Verify guard has valid permit
+    const permit = await guardFirearmPermitsCollection.findOne({ guardId: new ObjectId(guardId) })
+    if (!permit) {
+      return res.status(400).json({ error: 'Guard does not have a firearm permit' })
+    }
+
+    const isPermitExpired = new Date() > new Date(permit.expiryDate)
+    if (isPermitExpired) {
+      return res.status(400).json({ error: 'Guard\'s firearm permit has expired' })
+    }
+
+    // Verify firearm exists and is available
+    const firearm = await firearmsCollection.findOne({ _id: new ObjectId(firearmId) })
+    if (!firearm) {
+      return res.status(404).json({ error: 'Firearm not found' })
+    }
+
+    if (firearm.status !== 'available') {
+      return res.status(400).json({ error: 'Firearm is not available for allocation' })
+    }
+
+    // Check if firearm is already allocated
+    if (firearm.currentAllocationId) {
+      return res.status(400).json({ error: 'Firearm is already allocated' })
+    }
+
+    // Create allocation record
+    const allocation = {
+      firearmId: new ObjectId(firearmId),
+      guardId: new ObjectId(guardId),
+      issuedAt: new Date(),
+      returnedAt: null,
+      status: 'allocated',
+      notes: notes || '',
+      createdAt: new Date()
+    }
+
+    const result = await firearmAllocationsCollection.insertOne(allocation)
+
+    // Update firearm status
+    await firearmsCollection.updateOne(
+      { _id: new ObjectId(firearmId) },
+      { $set: { status: 'allocated', currentAllocationId: result.insertedId } }
+    )
+
+    res.status(201).json({
+      message: 'Firearm issued successfully',
+      allocationId: result.insertedId
+    })
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// Return firearm from guard
+app.post('/api/firearm-allocation/return', async (req, res) => {
+  try {
+    if (!firearmAllocationsCollection || !firearmsCollection) {
+      return res.status(503).json({ error: 'Database not connected' })
+    }
+
+    const { allocationId, condition, notes } = req.body
+
+    if (!allocationId) {
+      return res.status(400).json({ error: 'Allocation ID is required' })
+    }
+
+    const { ObjectId } = await import('mongodb')
+
+    // Find allocation
+    const allocation = await firearmAllocationsCollection.findOne({ _id: new ObjectId(allocationId) })
+    if (!allocation) {
+      return res.status(404).json({ error: 'Allocation not found' })
+    }
+
+    if (allocation.returnedAt) {
+      return res.status(400).json({ error: 'Firearm has already been returned' })
+    }
+
+    // Update allocation
+    const returnData = {
+      returnedAt: new Date(),
+      status: 'returned',
+      returnCondition: condition || 'good',
+      returnNotes: notes || ''
+    }
+
+    await firearmAllocationsCollection.updateOne(
+      { _id: new ObjectId(allocationId) },
+      { $set: returnData }
+    )
+
+    // Update firearm status
+    await firearmsCollection.updateOne(
+      { _id: allocation.firearmId },
+      { $set: { status: 'available', currentAllocationId: null, condition: condition || 'good' } }
+    )
+
+    res.json({ message: 'Firearm returned successfully' })
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// Get allocation history for a guard
+app.get('/api/guard-allocations/:guardId', async (req, res) => {
+  try {
+    if (!firearmAllocationsCollection) {
+      return res.status(503).json({ error: 'Database not connected' })
+    }
+
+    const { ObjectId } = await import('mongodb')
+
+    const allocations = await firearmAllocationsCollection
+      .find({ guardId: new ObjectId(req.params.guardId) })
+      .sort({ issuedAt: -1 })
+      .toArray()
+
+    res.json({
+      total: allocations.length,
+      allocations: allocations.map(a => ({
+        id: a._id,
+        firearmId: a.firearmId,
+        issuedAt: a.issuedAt,
+        returnedAt: a.returnedAt,
+        status: a.status,
+        notes: a.notes,
+        returnCondition: a.returnCondition
+      }))
+    })
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// Get current active allocations
+app.get('/api/firearm-allocations/active', async (req, res) => {
+  try {
+    if (!firearmAllocationsCollection) {
+      return res.status(503).json({ error: 'Database not connected' })
+    }
+
+    const activeAllocations = await firearmAllocationsCollection
+      .find({ returnedAt: null, status: 'allocated' })
+      .toArray()
+
+    res.json({
+      total: activeAllocations.length,
+      allocations: activeAllocations.map(a => ({
+        id: a._id,
+        firearmId: a.firearmId,
+        guardId: a.guardId,
+        issuedAt: a.issuedAt,
+        status: a.status
+      }))
+    })
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// ===== Firearm Maintenance =====
+
+// Record maintenance
+app.post('/api/firearm-maintenance', async (req, res) => {
+  try {
+    if (!firearmMaintenanceCollection || !firearmsCollection) {
+      return res.status(503).json({ error: 'Database not connected' })
+    }
+
+    const { firearmId, maintenanceType, notes } = req.body
+
+    if (!firearmId || !maintenanceType) {
+      return res.status(400).json({ error: 'Firearm ID and maintenance type are required' })
+    }
+
+    const { ObjectId } = await import('mongodb')
+
+    // Verify firearm exists
+    const firearm = await firearmsCollection.findOne({ _id: new ObjectId(firearmId) })
+    if (!firearm) {
+      return res.status(404).json({ error: 'Firearm not found' })
+    }
+
+    // Record maintenance
+    const result = await firearmMaintenanceCollection.insertOne({
+      firearmId: new ObjectId(firearmId),
+      maintenanceType,
+      notes: notes || '',
+      maintenanceDate: new Date(),
+      createdAt: new Date()
+    })
+
+    // Update firearm's last maintenance date
+    if (maintenanceType === 'service' || maintenanceType === 'inspection') {
+      await firearmsCollection.updateOne(
+        { _id: new ObjectId(firearmId) },
+        { $set: { lastMaintenanceDate: new Date() } }
+      )
+    }
+
+    res.status(201).json({
+      message: 'Maintenance recorded successfully',
+      maintenanceId: result.insertedId
+    })
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// Get maintenance history for firearm
+app.get('/api/firearm-maintenance/:firearmId', async (req, res) => {
+  try {
+    if (!firearmMaintenanceCollection) {
+      return res.status(503).json({ error: 'Database not connected' })
+    }
+
+    const { ObjectId } = await import('mongodb')
+
+    const maintenance = await firearmMaintenanceCollection
+      .find({ firearmId: new ObjectId(req.params.firearmId) })
+      .sort({ maintenanceDate: -1 })
+      .toArray()
+
+    res.json({
+      total: maintenance.length,
+      records: maintenance.map(m => ({
+        id: m._id,
+        maintenanceType: m.maintenanceType,
+        notes: m.notes,
+        maintenanceDate: m.maintenanceDate
+      }))
     })
   } catch (error) {
     res.status(500).json({ error: error.message })

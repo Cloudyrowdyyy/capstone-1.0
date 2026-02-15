@@ -167,6 +167,10 @@ export default function SuperadminDashboard({ user, onLogout, onViewChange }) {
           <div className="nav-tabs">
             <button className="nav-tab active" onClick={() => onViewChange('users')}>Users Management</button>
             <button className="nav-tab" onClick={() => onViewChange('performance')}>Performance Analytics</button>
+            <button className="nav-tab" onClick={() => onViewChange('firearms')}>Firearm Inventory</button>
+            <button className="nav-tab" onClick={() => onViewChange('allocation')}>Allocations</button>
+            <button className="nav-tab" onClick={() => onViewChange('permits')}>Guard Permits</button>
+            <button className="nav-tab" onClick={() => onViewChange('maintenance')}>Maintenance</button>
           </div>
           <div className="user-info">
             <span className="user-name">{user.username}</span>
