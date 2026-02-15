@@ -179,6 +179,8 @@ export default function LoginPage({ onLogin }) {
           return
         }
 
+        console.log('Attempting login with:', { identifier, password: '***' })
+
         // Call backend login
         const response = await fetch('http://localhost:5000/api/login', {
           method: 'POST',
@@ -186,8 +188,11 @@ export default function LoginPage({ onLogin }) {
           body: JSON.stringify({ identifier, password })
         })
 
+        console.log('Login response status:', response.status)
+
         if (!response.ok) {
           const data = await response.json()
+          console.log('Login error data:', data)
           if (data.requiresVerification) {
             setRequiresVerification(true)
             setVerificationEmail(email)

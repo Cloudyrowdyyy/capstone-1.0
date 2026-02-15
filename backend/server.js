@@ -271,7 +271,11 @@ app.post('/api/login', async (req, res) => {
     
     const { identifier, password } = req.body
 
+    console.log('[LOGIN] Request body:', req.body)
+    console.log('[LOGIN] Attempting login with identifier:', identifier)
+
     if (!identifier || !password) {
+      console.log('[LOGIN] Missing identifier or password')
       return res.status(400).json({ error: 'Email, phone number, and password are required' })
     }
 
@@ -283,21 +287,28 @@ app.post('/api/login', async (req, res) => {
         { username: identifier }
       ]
     })
+    
+    console.log('[LOGIN] User query result:', user ? `Found: ${user.username}` : 'NOT FOUND')
+    
     if (!user) {
       return res.status(401).json({ error: 'Invalid credentials' })
     }
 
     // Check if user is verified
     if (!user.verified) {
+      console.log('[LOGIN] User not verified')
       return res.status(403).json({ error: 'Please verify your email first', requiresVerification: true })
     }
 
     // Compare password
     const isPasswordValid = await bcrypt.compare(password, user.password)
+    console.log('[LOGIN] Password match result:', isPasswordValid)
+    
     if (!isPasswordValid) {
       return res.status(401).json({ error: 'Invalid credentials' })
     }
 
+    console.log('[LOGIN] SUCCESS for user:', identifier)
     res.json({
       message: 'Login successful',
       user: {
