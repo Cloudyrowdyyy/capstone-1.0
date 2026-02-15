@@ -22,6 +22,16 @@
   font-size: 1.8rem;
 }
 
+.badge-super {
+  background: #ffb300;
+  color: #333;
+  padding: 0.2rem 0.6rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  margin-left: 0.5rem;
+}
+
 .header-left {
   display: flex;
   align-items: center;
@@ -198,6 +208,141 @@
 .role-badge.user {
   background: #e8f5e9;
   color: #2e7d32;
+}
+
+.role-badge.superadmin {
+  background: #fff3e0;
+  color: #e65100;
+  font-weight: 700;
+}
+
+.users-table td input {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #667eea;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.edit-btn, .save-btn, .delete-btn, .cancel-btn {
+  padding: 0.4rem 0.8rem;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.edit-btn {
+  background: #667eea;
+  color: white;
+}
+
+.edit-btn:hover {
+  background: #764ba2;
+}
+
+.save-btn {
+  background: #4caf50;
+  color: white;
+}
+
+.save-btn:hover {
+  background: #388e3c;
+}
+
+.delete-btn {
+  background: #d32f2f;
+  color: white;
+}
+
+.delete-btn:hover {
+  background: #b71c1c;
+}
+
+.cancel-btn {
+  background: #9e9e9e;
+  color: white;
+}
+
+.cancel-btn:hover {
+  background: #757575;
+}
+
+.delete-confirm-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.delete-confirm-box {
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  text-align: center;
+  max-width: 300px;
+}
+
+.delete-confirm-box h3 {
+  margin: 0 0 0.5rem 0;
+  color: #d32f2f;
+  font-size: 1.3rem;
+}
+
+.delete-confirm-box p {
+  margin: 0 0 1.5rem 0;
+  color: #666;
+}
+
+.confirm-buttons {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.confirm-delete {
+  background: #d32f2f;
+  color: white;
+  padding: 0.7rem 1.5rem;
+  border: none;
+  border-radius: 4px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.confirm-delete:hover {
+  background: #b71c1c;
+}
+
+.confirm-cancel {
+  background: #9e9e9e;
+  color: white;
+  padding: 0.7rem 1.5rem;
+  border: none;
+  border-radius: 4px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.confirm-cancel:hover {
+  background: #757575;
 }
 
 @media (max-width: 768px) {

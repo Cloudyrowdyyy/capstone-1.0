@@ -351,6 +351,63 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'Server is running' })
 })
 
+// Edit user (Superadmin only)
+app.put('/api/users/:id', async (req, res) => {
+  try {
+    if (!usersCollection) {
+      return res.status(503).json({ error: 'Database not connected' })
+    }
+
+    const { ObjectId } = await import('mongodb')
+    const { fullName, phoneNumber, licenseNumber, licenseExpiryDate } = req.body
+    
+    if (!fullName || !phoneNumber || !licenseNumber || !licenseExpiryDate) {
+      return res.status(400).json({ error: 'All fields are required' })
+    }
+
+    const result = await usersCollection.updateOne(
+      { _id: new ObjectId(req.params.id) },
+      { 
+        $set: { 
+          fullName, 
+          phoneNumber, 
+          licenseNumber, 
+          licenseExpiryDate,
+          updatedAt: new Date()
+        } 
+      }
+    )
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ error: 'User not found' })
+    }
+
+    res.json({ message: 'User updated successfully' })
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// Delete user (Superadmin only)
+app.delete('/api/users/:id', async (req, res) => {
+  try {
+    if (!usersCollection) {
+      return res.status(503).json({ error: 'Database not connected' })
+    }
+
+    const { ObjectId } = await import('mongodb')
+    const result = await usersCollection.deleteOne({ _id: new ObjectId(req.params.id) })
+
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ error: 'User not found' })
+    }
+
+    res.json({ message: 'User deleted successfully' })
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
 // Connect to DB and start server
 connectDB().then(() => {
   app.listen(PORT, () => {

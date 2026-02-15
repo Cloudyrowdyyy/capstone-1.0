@@ -22,7 +22,7 @@ function App() {
     <div className="app">
       {!isLoggedIn ? (
         <LoginPage onLogin={handleLogin} />
-      ) : user?.role === 'admin' ? (
+      ) : user?.role === 'admin' || user?.role === 'superadmin' ? (
         <AdminDashboard user={user} onLogout={handleLogout} />
       ) : (
         <UserDashboard user={user} onLogout={handleLogout} />
