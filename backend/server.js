@@ -565,52 +565,58 @@ app.get('/api/performance/merit-scores', async (req, res) => {
     // Get all security guards (role: 'user')
     const guards = await usersCollection.find({ role: 'user' }).toArray()
 
-    const meritScores = await Promise.all(guards.map(async (guard) => {
-      // Attendance score (40%)
-      const thirtyDaysAgo = new Date()
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-      
-      const attendanceRecords = await attendanceCollection.find({
-        guardId: guard._id,
-        date: { $gte: thirtyDaysAgo }
-      }).toArray()
+    const meritScores = []
+    
+    for (const guard of guards) {
+      try {
+        // Attendance score (40%)
+        const thirtyDaysAgo = new Date()
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+        
+        const attendanceRecords = await attendanceCollection.find({
+          guardId: guard._id,
+          date: { $gte: thirtyDaysAgo }
+        }).toArray()
 
-      const daysPresent = attendanceRecords.filter(r => r.checkIn && r.checkOut).length
-      const totalWorkingDays = 30
-      const attendanceScore = (daysPresent / totalWorkingDays) * 100
+        const daysPresent = attendanceRecords.filter(r => r.checkIn && r.checkOut).length
+        const totalWorkingDays = 30
+        const attendanceScore = (daysPresent / totalWorkingDays) * 100
 
-      // Punctuality score (30%) - on time if checked in before 9 AM
-      const onTimeCount = attendanceRecords.filter(r => {
-        const checkInHour = new Date(r.checkIn).getHours()
-        return checkInHour <= 9
-      }).length
-      const punctualityScore = (onTimeCount / Math.max(daysPresent, 1)) * 100
+        // Punctuality score (30%) - on time if checked in before 9 AM
+        const onTimeCount = attendanceRecords.filter(r => {
+          const checkInHour = new Date(r.checkIn).getHours()
+          return checkInHour <= 9
+        }).length
+        const punctualityScore = (onTimeCount / Math.max(daysPresent, 1)) * 100
 
-      // Feedback score (30%) - average rating
-      const feedbackRecords = await feedbackCollection.find({
-        guardId: guard._id
-      }).toArray()
+        // Feedback score (30%) - average rating
+        const feedbackRecords = await feedbackCollection.find({
+          guardId: guard._id
+        }).toArray()
 
-      const feedbackScore = feedbackRecords.length > 0
-        ? (feedbackRecords.reduce((sum, f) => sum + f.rating, 0) / feedbackRecords.length) * 20
-        : 0
+        const feedbackScore = feedbackRecords.length > 0
+          ? (feedbackRecords.reduce((sum, f) => sum + f.rating, 0) / feedbackRecords.length) * 20
+          : 0
 
-      // Merit score calculation
-      const meritScore = (attendanceScore * 0.4) + (punctualityScore * 0.3) + (feedbackScore * 0.3)
+        // Merit score calculation
+        const meritScore = (attendanceScore * 0.4) + (punctualityScore * 0.3) + (feedbackScore * 0.3)
 
-      return {
-        id: guard._id,
-        name: guard.fullName,
-        email: guard.email,
-        phone: guard.phoneNumber,
-        attendanceScore: Math.round(attendanceScore),
-        punctualityScore: Math.round(punctualityScore),
-        feedbackScore: Math.round(feedbackScore),
-        meritScore: Math.round(meritScore * 100) / 100,
-        daysPresent,
-        feedbackCount: feedbackRecords.length
+        meritScores.push({
+          id: guard._id,
+          name: guard.fullName || 'Unknown',
+          email: guard.email || '',
+          phone: guard.phoneNumber || '',
+          attendanceScore: Math.round(attendanceScore),
+          punctualityScore: Math.round(punctualityScore),
+          feedbackScore: Math.round(feedbackScore),
+          meritScore: Math.round(meritScore * 100) / 100,
+          daysPresent,
+          feedbackCount: feedbackRecords.length
+        })
+      } catch (guardError) {
+        console.error(`Error calculating merit for guard ${guard._id}:`, guardError.message)
       }
-    }))
+    }
 
     // Sort by merit score descending
     meritScores.sort((a, b) => b.meritScore - a.meritScore)
@@ -620,6 +626,7 @@ app.get('/api/performance/merit-scores', async (req, res) => {
       scores: meritScores
     })
   } catch (error) {
+    console.error('Error fetching merit scores:', error.message)
     res.status(500).json({ error: error.message })
   }
 })
