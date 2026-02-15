@@ -1247,6 +1247,99 @@ app.get('/api/firearm-maintenance/:firearmId', async (req, res) => {
   }
 })
 
+// ==================== REPORTS API ====================
+
+// Get all firearm allocations (for reports)
+app.get('/api/firearm-allocations', async (req, res) => {
+  try {
+    if (!firearmAllocationsCollection) {
+      return res.status(503).json({ error: 'Database not connected' })
+    }
+
+    const allocations = await firearmAllocationsCollection
+      .find({})
+      .sort({ allocationDate: -1 })
+      .toArray()
+
+    res.json(allocations.map(a => ({
+      _id: a._id,
+      guardId: a.guardId,
+      guardName: a.guardName,
+      firearmId: a.firearmId,
+      firearmSerialNumber: a.firearmSerialNumber,
+      firearmModel: a.firearmModel,
+      firearmCaliber: a.firearmCaliber,
+      allocationDate: a.allocationDate,
+      returnDate: a.returnDate,
+      purpose: a.purpose,
+      status: a.status,
+      condition: a.condition,
+      conditionOnReturn: a.conditionOnReturn,
+      notes: a.notes
+    })))
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// Get all guard firearm permits (for reports)
+app.get('/api/guard-firearm-permits', async (req, res) => {
+  try {
+    if (!guardFirearmPermitsCollection) {
+      return res.status(503).json({ error: 'Database not connected' })
+    }
+
+    const permits = await guardFirearmPermitsCollection
+      .find({})
+      .sort({ issueDate: -1 })
+      .toArray()
+
+    res.json(permits.map(p => ({
+      _id: p._id,
+      guardId: p.guardId,
+      guardName: p.guardName,
+      firearmId: p.firearmId,
+      firearmSerialNumber: p.firearmSerialNumber,
+      issueDate: p.issueDate,
+      expiryDate: p.expiryDate,
+      authority: p.authority,
+      permitNumber: p.permitNumber,
+      status: p.status,
+      renewalRequestDate: p.renewalRequestDate
+    })))
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// Get all firearm maintenance records (for reports)
+app.get('/api/firearm-maintenance', async (req, res) => {
+  try {
+    if (!firearmMaintenanceCollection) {
+      return res.status(503).json({ error: 'Database not connected' })
+    }
+
+    const maintenance = await firearmMaintenanceCollection
+      .find({})
+      .sort({ date: -1 })
+      .toArray()
+
+    res.json(maintenance.map(m => ({
+      _id: m._id,
+      firearmId: m.firearmId,
+      firearmSerialNumber: m.firearmSerialNumber,
+      maintenanceType: m.maintenanceType,
+      date: m.date,
+      performedBy: m.performedBy,
+      notes: m.notes,
+      nextDueDate: m.nextDueDate,
+      cost: m.cost
+    })))
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
 // ==================== ALERTS API ====================
 
 // Create alert
