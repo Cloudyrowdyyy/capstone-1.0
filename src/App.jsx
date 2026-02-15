@@ -16,6 +16,7 @@ function App() {
   const [activeView, setActiveView] = useState('users') // 'users', 'performance', 'firearms', 'allocation', 'permits', 'maintenance'
 
   const handleLogin = (userData) => {
+    console.log('Login successful:', userData)
     setUser(userData)
     setIsLoggedIn(true)
     setActiveView('users')
@@ -27,8 +28,10 @@ function App() {
     setActiveView('users')
   }
 
+  console.log('App rendering, isLoggedIn:', isLoggedIn, 'user:', user)
+
   return (
-    <div className="app">
+    <div className="app" style={{ minHeight: '100vh', width: '100%' }}>
       {!isLoggedIn ? (
         <LoginPage onLogin={handleLogin} />
       ) : user?.role === 'superadmin' ? (
