@@ -3,6 +3,7 @@ import cors from 'cors'
 import dotenv from 'dotenv'
 import { MongoClient } from 'mongodb'
 import bcrypt from 'bcryptjs'
+import nodemailer from 'nodemailer'
 
 dotenv.config()
 
@@ -12,6 +13,21 @@ const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017'
 
 let db
 let usersCollection
+let pendingUsersCollection
+
+// Setup Gmail transporter for email
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.GMAIL_USER,
+    pass: process.env.GMAIL_PASSWORD
+  }
+})
+
+// Generate random confirmation code
+function generateConfirmationCode() {
+  return Math.floor(100000 + Math.random() * 900000).toString()
+}
 
 // Middleware
 app.use(express.json())
@@ -28,6 +44,7 @@ async function connectDB() {
     console.log('✓ Connected to MongoDB')
     db = client.db('login_app')
     usersCollection = db.collection('users')
+    pendingUsersCollection = db.collection('pending_users')
   } catch (error) {
     console.warn('⚠ MongoDB connection failed:', error.message)
     console.warn('⚠ Running in offline mode - database features disabled')
@@ -38,7 +55,7 @@ async function connectDB() {
 // Register user
 app.post('/api/register', async (req, res) => {
   try {
-    if (!usersCollection) {
+    if (!usersCollection || !pendingUsersCollection) {
       return res.status(503).json({ error: 'Database not connected' })
     }
     
@@ -68,28 +85,107 @@ app.post('/api/register', async (req, res) => {
       }
     }
 
-    // Check if user exists
+    // Check if user already exists
     const existingUser = await usersCollection.findOne({ email })
     if (existingUser) {
       return res.status(400).json({ error: 'User already exists' })
     }
 
+    // Generate confirmation code
+    const confirmationCode = generateConfirmationCode()
+    
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10)
 
-    // Create user with role
-    const result = await usersCollection.insertOne({
+    // Store pending user registration
+    await pendingUsersCollection.insertOne({
       email,
       username,
       password: hashedPassword,
       role,
+      confirmationCode,
+      createdAt: new Date(),
+      expiresAt: new Date(Date.now() + 15 * 60 * 1000) // 15 minutes
+    })
+
+    // Send confirmation email
+    const mailOptions = {
+      from: process.env.GMAIL_USER,
+      to: email,
+      subject: 'Email Confirmation - Dasia Security Training Academy',
+      html: `
+        <div style="font-family: Arial, sans-serif; padding: 20px;">
+          <h2>Welcome to Dasia Security Training Academy!</h2>
+          <p>Hi ${username},</p>
+          <p>Thank you for registering. Please use the confirmation code below to verify your email address:</p>
+          <div style="background-color: #f0f0f0; padding: 15px; margin: 20px 0; border-radius: 5px; text-align: center;">
+            <h3 style="margin: 0; color: #667eea;">${confirmationCode}</h3>
+          </div>
+          <p>This code will expire in 15 minutes.</p>
+          <p>If you didn't create this account, you can ignore this email.</p>
+          <p>Best regards,<br/>Dasia Security Training Academy Team</p>
+        </div>
+      `
+    }
+
+    await transporter.sendMail(mailOptions)
+
+    res.status(201).json({
+      message: 'Registration successful! Please check your email for the confirmation code.',
+      email: email,
+      requiresVerification: true
+    })
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// Verify email confirmation code
+app.post('/api/verify-email', async (req, res) => {
+  try {
+    if (!usersCollection || !pendingUsersCollection) {
+      return res.status(503).json({ error: 'Database not connected' })
+    }
+
+    const { email, confirmationCode } = req.body
+
+    if (!email || !confirmationCode) {
+      return res.status(400).json({ error: 'Email and confirmation code are required' })
+    }
+
+    // Find pending user
+    const pendingUser = await pendingUsersCollection.findOne({ email })
+    if (!pendingUser) {
+      return res.status(400).json({ error: 'Registration not found. Please register again.' })
+    }
+
+    // Check if code is expired
+    if (new Date() > pendingUser.expiresAt) {
+      await pendingUsersCollection.deleteOne({ email })
+      return res.status(400).json({ error: 'Confirmation code has expired. Please register again.' })
+    }
+
+    // Verify confirmation code
+    if (pendingUser.confirmationCode !== confirmationCode) {
+      return res.status(400).json({ error: 'Invalid confirmation code' })
+    }
+
+    // Create user in main collection
+    const result = await usersCollection.insertOne({
+      email: pendingUser.email,
+      username: pendingUser.username,
+      password: pendingUser.password,
+      role: pendingUser.role,
+      verified: true,
       createdAt: new Date()
     })
 
-    res.status(201).json({
-      message: 'User registered successfully',
-      userId: result.insertedId,
-      role: role
+    // Delete from pending collection
+    await pendingUsersCollection.deleteOne({ email })
+
+    res.json({
+      message: 'Email verified successfully. You can now login.',
+      userId: result.insertedId
     })
   } catch (error) {
     res.status(500).json({ error: error.message })
