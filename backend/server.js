@@ -97,15 +97,17 @@ app.post('/api/register', async (req, res) => {
     
     const { email, password, username, role, adminCode, fullName, phoneNumber, licenseNumber, licenseExpiryDate } = req.body
 
+    console.log('Register request received:', { email, username, role, fullName, phoneNumber, hasLicense: !!licenseNumber })
+
     // For admin accounts, license fields are optional
     if (role === 'admin') {
       if (!email || !password || !username || !role || !fullName || !phoneNumber) {
-        return res.status(400).json({ error: 'All fields are required' })
+        return res.status(400).json({ error: 'Email, password, username, full name, and phone number are required for admin accounts' })
       }
     } else {
       // For regular users, all fields including license are required
       if (!email || !password || !username || !role || !fullName || !phoneNumber || !licenseNumber || !licenseExpiryDate) {
-        return res.status(400).json({ error: 'All fields are required' })
+        return res.status(400).json({ error: 'All fields are required for regular user accounts' })
       }
     }
 

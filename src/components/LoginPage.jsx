@@ -132,20 +132,28 @@ export default function LoginPage({ onLogin }) {
         }
 
         // Call backend register
+        const requestBody = { 
+          email, 
+          password, 
+          username, 
+          role, 
+          adminCode,
+          fullName,
+          phoneNumber
+        }
+        
+        // Only include license fields if not admin
+        if (role !== 'admin') {
+          requestBody.licenseNumber = licenseNumber
+          requestBody.licenseExpiryDate = licenseExpiryDate
+        }
+        
+        console.log('Registering with:', requestBody)
+        
         const response = await fetch('http://localhost:5000/api/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            email, 
-            password, 
-            username, 
-            role, 
-            adminCode,
-            fullName,
-            phoneNumber,
-            licenseNumber,
-            licenseExpiryDate
-          })
+          body: JSON.stringify(requestBody)
         })
 
         if (!response.ok) {
