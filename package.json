@@ -3,18 +3,16 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "main": "electron.cjs",
-  "homepage": "./",
+  "description": "Guard Firearm Management System - Web Application",
+  "homepage": "/",
   "scripts": {
-    "dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
-    "build": "vite build && electron-builder",
-    "build:web": "vite build",
+    "dev": "vite",
+    "build": "vite build",
     "preview": "vite preview",
-    "electron": "electron .",
-    "electron-dev": "electron . --remote-debugging-port=9223"
+    "backend": "node backend/server.js",
+    "start": "npm run dev"
   },
   "dependencies": {
-    "electron-is-dev": "^3.0.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
@@ -22,35 +20,7 @@
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
     "@vitejs/plugin-react": "^4.2.0",
-    "concurrently": "^7.6.0",
-    "electron": "^40.4.1",
-    "electron-builder": "^26.7.0",
-    "vite": "^7.3.1",
-    "wait-on": "^7.2.0"
-  },
-  "build": {
-    "appId": "com.guardfiream.app",
-    "productName": "Guard Firearm Management",
-    "files": [
-      "app-dist/**/*",
-      "electron.cjs",
-      "preload.js",
-      "package.json"
-    ],
-    "directories": {
-      "buildResources": "assets",
-      "output": "release"
-    },
-    "win": {
-      "target": [
-        "portable"
-      ]
-    },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true,
-      "createStartMenuShortcut": true
-    }
+    "vite": "^7.3.1"
   }
 }
+
