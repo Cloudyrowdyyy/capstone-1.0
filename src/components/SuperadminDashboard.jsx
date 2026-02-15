@@ -6,8 +6,8 @@ export default function SuperadminDashboard({ user, onLogout }) {
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [editingUser, setEditingUser] = useState(null)
-  const [editFormData, setEditFormData] = useState({})
+  const [hoveredRow, setHoveredRow] = useState(null)
+  const [editingCell, setEditingCell] = useState(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterRole, setFilterRole] = useState('all')
@@ -42,32 +42,45 @@ export default function SuperadminDashboard({ user, onLogout }) {
   })
 
   const handleEditClick = (u) => {
-    setEditingUser(u.id)
-    setEditFormData({
-      fullName: u.fullName || '',
-      phoneNumber: u.phoneNumber || '',
-      licenseNumber: u.licenseNumber || '',
-      licenseExpiryDate: u.licenseExpiryDate ? u.licenseExpiryDate.split('T')[0] : ''
+    setEditingCell({
+      userId: u.id,
+      field: 'fullName',
+      value: u.fullName || ''
     })
   }
 
-  const handleEditSave = async () => {
+  const handleCellSave = async (userId, field, newValue, currentUser) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/users/${editingUser}`, {
+      const updateData = {
+        fullName: field === 'fullName' ? newValue : currentUser.fullName,
+        phoneNumber: field === 'phoneNumber' ? newValue : currentUser.phoneNumber,
+        licenseNumber: field === 'licenseNumber' ? newValue : currentUser.licenseNumber,
+        licenseExpiryDate: field === 'licenseExpiryDate' ? newValue : currentUser.licenseExpiryDate
+      }
+
+      const response = await fetch(`http://localhost:5000/api/users/${userId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editFormData)
+        body: JSON.stringify(updateData)
       })
 
       if (!response.ok) {
         throw new Error('Failed to update user')
       }
 
-      setEditingUser(null)
+      setEditingCell(null)
       setError('')
       fetchUsers()
     } catch (err) {
       setError('Error updating user: ' + err.message)
+      setEditingCell(null)
+    }
+  }
+
+  const handleEditSave = async () => {
+    if (editingCell) {
+      const currentUser = users.find(u => u.id === editingCell.userId)
+      await handleCellSave(editingCell.userId, editingCell.field, editingCell.value, currentUser)
     }
   }
 
@@ -214,50 +227,107 @@ export default function SuperadminDashboard({ user, onLogout }) {
                 </thead>
                 <tbody>
                   {filteredUsers.map((u) => (
-                    <tr key={u.id} className={`user-row role-${u.role}`}>
-                      <td>
-                        {editingUser === u.id ? (
+                    <tr 
+                      key={u.id} 
+                      className={`user-row role-${u.role}`}
+                      onMouseEnter={() => setHoveredRow(u.id)}
+                      onMouseLeave={() => setHoveredRow(null)}
+                    >
+                      <td className="editable-cell">
+                        {editingCell?.userId === u.id && editingCell?.field === 'fullName' ? (
                           <input 
                             type="text" 
-                            value={editFormData.fullName} 
-                            onChange={(e) => setEditFormData({...editFormData, fullName: e.target.value})} 
+                            value={editingCell.value}
+                            autoFocus
+                            onChange={(e) => setEditingCell({...editingCell, value: e.target.value})}
+                            onBlur={() => handleCellSave(u.id, 'fullName', editingCell.value, u)}
+                            onKeyPress={(e) => {
+                              if (e.key === 'Enter') {
+                                handleCellSave(u.id, 'fullName', editingCell.value, u)
+                              }
+                            }}
                           />
                         ) : (
-                          u.fullName || '-'
+                          <span 
+                            className={hoveredRow === u.id ? 'hover-text' : ''}
+                            onClick={() => setEditingCell({userId: u.id, field: 'fullName', value: u.fullName || ''})}
+                          >
+                            {u.fullName || '-'}
+                          </span>
                         )}
                       </td>
-                      <td>{u.email}</td>
-                      <td>
-                        {editingUser === u.id ? (
+                      <td className="editable-cell">
+                        <span className={hoveredRow === u.id ? 'hover-text' : ''}>
+                          {u.email}
+                        </span>
+                      </td>
+                      <td className="editable-cell">
+                        {editingCell?.userId === u.id && editingCell?.field === 'phoneNumber' ? (
                           <input 
                             type="tel" 
-                            value={editFormData.phoneNumber} 
-                            onChange={(e) => setEditFormData({...editFormData, phoneNumber: e.target.value})} 
+                            value={editingCell.value}
+                            autoFocus
+                            onChange={(e) => setEditingCell({...editingCell, value: e.target.value})}
+                            onBlur={() => handleCellSave(u.id, 'phoneNumber', editingCell.value, u)}
+                            onKeyPress={(e) => {
+                              if (e.key === 'Enter') {
+                                handleCellSave(u.id, 'phoneNumber', editingCell.value, u)
+                              }
+                            }}
                           />
                         ) : (
-                          u.phoneNumber || '-'
+                          <span 
+                            className={hoveredRow === u.id ? 'hover-text' : ''}
+                            onClick={() => setEditingCell({userId: u.id, field: 'phoneNumber', value: u.phoneNumber || ''})}
+                          >
+                            {u.phoneNumber || '-'}
+                          </span>
                         )}
                       </td>
-                      <td>
-                        {editingUser === u.id ? (
+                      <td className="editable-cell">
+                        {editingCell?.userId === u.id && editingCell?.field === 'licenseNumber' ? (
                           <input 
                             type="text" 
-                            value={editFormData.licenseNumber} 
-                            onChange={(e) => setEditFormData({...editFormData, licenseNumber: e.target.value})} 
+                            value={editingCell.value}
+                            autoFocus
+                            onChange={(e) => setEditingCell({...editingCell, value: e.target.value})}
+                            onBlur={() => handleCellSave(u.id, 'licenseNumber', editingCell.value, u)}
+                            onKeyPress={(e) => {
+                              if (e.key === 'Enter') {
+                                handleCellSave(u.id, 'licenseNumber', editingCell.value, u)
+                              }
+                            }}
                           />
                         ) : (
-                          u.licenseNumber || '-'
+                          <span 
+                            className={hoveredRow === u.id ? 'hover-text' : ''}
+                            onClick={() => setEditingCell({userId: u.id, field: 'licenseNumber', value: u.licenseNumber || ''})}
+                          >
+                            {u.licenseNumber || '-'}
+                          </span>
                         )}
                       </td>
-                      <td>
-                        {editingUser === u.id ? (
+                      <td className="editable-cell">
+                        {editingCell?.userId === u.id && editingCell?.field === 'licenseExpiryDate' ? (
                           <input 
                             type="date" 
-                            value={editFormData.licenseExpiryDate} 
-                            onChange={(e) => setEditFormData({...editFormData, licenseExpiryDate: e.target.value})} 
+                            value={editingCell.value}
+                            autoFocus
+                            onChange={(e) => setEditingCell({...editingCell, value: e.target.value})}
+                            onBlur={() => handleCellSave(u.id, 'licenseExpiryDate', editingCell.value, u)}
+                            onKeyPress={(e) => {
+                              if (e.key === 'Enter') {
+                                handleCellSave(u.id, 'licenseExpiryDate', editingCell.value, u)
+                              }
+                            }}
                           />
                         ) : (
-                          u.licenseExpiryDate ? new Date(u.licenseExpiryDate).toLocaleDateString() : '-'
+                          <span 
+                            className={hoveredRow === u.id ? 'hover-text' : ''}
+                            onClick={() => setEditingCell({userId: u.id, field: 'licenseExpiryDate', value: u.licenseExpiryDate ? u.licenseExpiryDate.split('T')[0] : ''})}
+                          >
+                            {u.licenseExpiryDate ? new Date(u.licenseExpiryDate).toLocaleDateString() : '-'}
+                          </span>
                         )}
                       </td>
                       <td>
@@ -272,17 +342,9 @@ export default function SuperadminDashboard({ user, onLogout }) {
                       </td>
                       <td>{new Date(u.createdAt).toLocaleDateString()}</td>
                       <td>
-                        {editingUser === u.id ? (
-                          <div className="action-buttons">
-                            <button className="btn-save" onClick={handleEditSave}>Save</button>
-                            <button className="btn-cancel" onClick={() => setEditingUser(null)}>Cancel</button>
-                          </div>
-                        ) : (
-                          <div className="action-buttons">
-                            <button className="btn-edit" onClick={() => handleEditClick(u)}>Edit</button>
-                            <button className="btn-delete" onClick={() => setShowDeleteConfirm(u.id)}>Delete</button>
-                          </div>
-                        )}
+                        <div className="action-buttons">
+                          <button className="btn-delete" onClick={() => setShowDeleteConfirm(u.id)}>Delete</button>
+                        </div>
                       </td>
                     </tr>
                   ))}
