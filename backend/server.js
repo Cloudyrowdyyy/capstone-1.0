@@ -20,20 +20,28 @@ app.use(cors())
 // Connect to MongoDB
 async function connectDB() {
   try {
-    const client = new MongoClient(MONGODB_URI)
+    const client = new MongoClient(MONGODB_URI, { 
+      serverSelectionTimeoutMS: 5000,
+      connectTimeoutMS: 5000 
+    })
     await client.connect()
-    console.log('Connected to MongoDB')
+    console.log('✓ Connected to MongoDB')
     db = client.db('login_app')
     usersCollection = db.collection('users')
   } catch (error) {
-    console.error('MongoDB connection failed:', error)
-    process.exit(1)
+    console.warn('⚠ MongoDB connection failed:', error.message)
+    console.warn('⚠ Running in offline mode - database features disabled')
+    console.warn('⚠ Please check your MongoDB connection string and network access')
   }
 }
 
 // Register user
 app.post('/api/register', async (req, res) => {
   try {
+    if (!usersCollection) {
+      return res.status(503).json({ error: 'Database not connected' })
+    }
+    
     const { email, password, username } = req.body
 
     if (!email || !password || !username) {
@@ -129,6 +137,10 @@ app.get('/api/health', (req, res) => {
 // Connect to DB and start server
 connectDB().then(() => {
   app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`)
+    if (db) {
+      console.log(`✓ Server running on http://localhost:${PORT} (Database connected)`)
+    } else {
+      console.log(`✓ Server running on http://localhost:${PORT} (Offline mode)`)
+    }
   })
 })
