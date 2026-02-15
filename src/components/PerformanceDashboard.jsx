@@ -19,14 +19,24 @@ export default function PerformanceDashboard({ user, onLogout, onViewChange }) {
   const fetchMeritScores = async () => {
     try {
       setLoading(true)
-      const response = await fetch('http://localhost:5000/api/performance/merit-scores')
-      if (!response.ok) {
-        throw new Error('Failed to fetch merit scores')
-      }
-      const data = await response.json()
-      setGuards(data.scores)
       setError('')
+      const response = await fetch('http://localhost:5000/api/performance/merit-scores', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+      
+      if (!response.ok) {
+        const errorData = await response.text()
+        console.error('API Error:', response.status, errorData)
+        throw new Error(`API returned status ${response.status}: ${errorData}`)
+      }
+      
+      const data = await response.json()
+      setGuards(data.scores || [])
     } catch (err) {
+      console.error('Fetch Error:', err)
       setError('Error loading performance data: ' + err.message)
     } finally {
       setLoading(false)
@@ -36,13 +46,23 @@ export default function PerformanceDashboard({ user, onLogout, onViewChange }) {
   const fetchGuardDetails = async (guardId) => {
     try {
       setDetailsLoading(true)
-      const response = await fetch(`http://localhost:5000/api/performance/guards/${guardId}`)
+      const response = await fetch(`http://localhost:5000/api/performance/guards/${guardId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+      
       if (!response.ok) {
-        throw new Error('Failed to fetch guard details')
+        const errorData = await response.text()
+        console.error('API Error:', response.status, errorData)
+        throw new Error(`API returned status ${response.status}: ${errorData}`)
       }
+      
       const data = await response.json()
       setGuardDetails(data)
     } catch (err) {
+      console.error('Fetch Error:', err)
       setError('Error loading guard details: ' + err.message)
     } finally {
       setDetailsLoading(false)
