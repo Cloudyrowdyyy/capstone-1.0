@@ -778,19 +778,19 @@ app.get('/api/firearms', async (req, res) => {
 
     const firearms = await firearmsCollection.find({}).toArray()
 
-    res.json({
-      total: firearms.length,
-      firearms: firearms.map(f => ({
-        id: f._id,
-        serialNumber: f.serialNumber,
-        model: f.model,
-        condition: f.condition,
-        status: f.status,
-        currentAllocationId: f.currentAllocationId,
-        lastMaintenanceDate: f.lastMaintenanceDate,
-        createdAt: f.createdAt
-      }))
-    })
+    res.json(firearms.map(f => ({
+      _id: f._id,
+      serialNumber: f.serialNumber,
+      type: f.type,
+      model: f.model,
+      caliber: f.caliber,
+      condition: f.condition,
+      status: f.status,
+      location: f.location,
+      lastMaintenance: f.lastMaintenance,
+      lastMaintenanceDate: f.lastMaintenanceDate,
+      createdAt: f.createdAt
+    })))
   } catch (error) {
     res.status(500).json({ error: error.message })
   }
