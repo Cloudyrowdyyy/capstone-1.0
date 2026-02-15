@@ -97,16 +97,8 @@ app.post('/api/register', async (req, res) => {
     
     const { email, password, username, role, adminCode, fullName, phoneNumber, licenseNumber, licenseExpiryDate } = req.body
 
-    // For admin accounts, license fields are not required
-    if (role === 'admin') {
-      if (!email || !password || !username || !role || !fullName || !phoneNumber) {
-        return res.status(400).json({ error: 'All fields are required' })
-      }
-    } else {
-      // For regular users, all fields including license are required
-      if (!email || !password || !username || !role || !fullName || !phoneNumber || !licenseNumber || !licenseExpiryDate) {
-        return res.status(400).json({ error: 'All fields are required' })
-      }
+    if (!email || !password || !username || !role || !fullName || !phoneNumber || !licenseNumber || !licenseExpiryDate) {
+      return res.status(400).json({ error: 'All fields are required' })
     }
 
     // Validate Gmail domain
