@@ -7,6 +7,7 @@ export default function LoginPage({ onLogin }) {
   const [password, setPassword] = useState('')
   const [username, setUsername] = useState('')
   const [role, setRole] = useState('user')
+  const [adminCode, setAdminCode] = useState('')
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [isRegistering, setIsRegistering] = useState(false)
@@ -25,8 +26,20 @@ export default function LoginPage({ onLogin }) {
           return
         }
 
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-          setError('Please enter a valid email address')
+        if (!email.endsWith('@gmail.com')) {
+          setError('You must use a Gmail account (email must end with @gmail.com)')
+          setIsLoading(false)
+          return
+        }
+
+        if (role === 'admin' && !adminCode) {
+          setError('Admin code is required for admin account')
+          setIsLoading(false)
+          return
+        }
+
+        if (role === 'admin' && adminCode !== '122601') {
+          setError('Invalid admin code')
           setIsLoading(false)
           return
         }
@@ -41,7 +54,7 @@ export default function LoginPage({ onLogin }) {
         const response = await fetch('http://localhost:5000/api/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password, username, role })
+          body: JSON.stringify({ email, password, username, role, adminCode })
         })
 
         if (!response.ok) {
@@ -149,6 +162,20 @@ export default function LoginPage({ onLogin }) {
             </div>
           )}
 
+          {isRegistering && role === 'admin' && (
+            <div className="form-group">
+              <label htmlFor="adminCode">Admin Code</label>
+              <input
+                id="adminCode"
+                type="password"
+                value={adminCode}
+                onChange={(e) => setAdminCode(e.target.value)}
+                placeholder="Enter admin code"
+                disabled={isLoading}
+              />
+            </div>
+          )}
+
           {error && (
             <div className={`message ${isRegistering && !error.includes('successful') ? 'error-message' : error.includes('successful') ? 'success-message' : 'error-message'}`}>
               {error}
@@ -168,6 +195,7 @@ export default function LoginPage({ onLogin }) {
               setIsRegistering(!isRegistering)
               setError('')
               setPassword('')
+              setAdminCode('')
             }}
             disabled={isLoading}
           >
