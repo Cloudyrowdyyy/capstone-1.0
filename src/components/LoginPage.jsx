@@ -87,7 +87,10 @@ export default function LoginPage({ onLogin }) {
 
       if (isRegistering) {
         // Register
+        console.log('Registration attempt:', { email, password, username, role, fullName, phoneNumber })
+        
         if (!email || !password || !username || !role) {
+          console.log('Missing basic fields:', { email: !email, password: !password, username: !username, role: !role })
           setError('All fields are required')
           setIsLoading(false)
           return
@@ -95,6 +98,7 @@ export default function LoginPage({ onLogin }) {
 
         // Validate required fields
         if (!fullName || !phoneNumber) {
+          console.log('Missing personal info:', { fullName: !fullName, phoneNumber: !phoneNumber })
           setError('Full name and phone number are required')
           setIsLoading(false)
           return
@@ -102,6 +106,7 @@ export default function LoginPage({ onLogin }) {
 
         // For regular users, license fields are required
         if (role !== 'admin' && (!licenseNumber || !licenseExpiryDate)) {
+          console.log('Missing license fields for user:', { licenseNumber: !licenseNumber, licenseExpiryDate: !licenseExpiryDate })
           setError('License number and expiry date are required for regular users')
           setIsLoading(false)
           return
