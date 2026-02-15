@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react'
 import Logo from './Logo'
+import AlertsCenter from './AlertsCenter'
+import ReportsAnalytics from './ReportsAnalytics'
+import GuardDashboard from './GuardDashboard'
 import './SuperadminDashboard.css'
 
 // Format phone number to +63-###-###-####
@@ -41,10 +44,55 @@ export default function SuperadminDashboard({ user, onLogout, onViewChange }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterRole, setFilterRole] = useState('all')
+  const [showAlerts, setShowAlerts] = useState(false)
+  const [unreadAlerts, setUnreadAlerts] = useState(0)
+  const [showReports, setShowReports] = useState(false)
+  const [showGuardDashboard, setShowGuardDashboard] = useState(null)
+  const [showKeyboardHelp, setShowKeyboardHelp] = useState(false)
 
   useEffect(() => {
     fetchUsers()
-  }, [])
+    fetchUnreadAlerts()
+    // Refresh alerts every 30 seconds
+    const alertInterval = setInterval(fetchUnreadAlerts, 30000)
+
+    // Keyboard shortcuts
+    const handleKeyPress = (e) => {
+      // Ctrl+Alt+N for notifications
+      if (e.ctrlKey && e.altKey && e.key === 'n') {
+        e.preventDefault()
+        setShowAlerts(!showAlerts)
+      }
+      // Ctrl+Shift+R for reports
+      if (e.ctrlKey && e.shiftKey && e.key === 'R') {
+        e.preventDefault()
+        setShowReports(!showReports)
+      }
+      // ? for help
+      if (e.key === '?' && !e.ctrlKey && !e.altKey && !e.shiftKey) {
+        e.preventDefault()
+        setShowKeyboardHelp(!showKeyboardHelp)
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyPress)
+    return () => {
+      clearInterval(alertInterval)
+      window.removeEventListener('keydown', handleKeyPress)
+    }
+  }, [showAlerts, showReports, showKeyboardHelp])
+
+  const fetchUnreadAlerts = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/alerts?isRead=false')
+      if (response.ok) {
+        const data = await response.json()
+        setUnreadAlerts(data.unreadCount || 0)
+      }
+    } catch (error) {
+      console.error('Error fetching unread alerts:', error)
+    }
+  }
 
   const fetchUsers = async () => {
     try {
@@ -173,6 +221,28 @@ export default function SuperadminDashboard({ user, onLogout, onViewChange }) {
             <button className="nav-tab" onClick={() => onViewChange('maintenance')}>Maintenance</button>
           </div>
           <div className="user-info">
+            <button 
+              className="alerts-bell"
+              onClick={() => setShowAlerts(!showAlerts)}
+              title={`${unreadAlerts} unread alerts`}
+            >
+              🔔
+              {unreadAlerts > 0 && <span className="alert-badge">{unreadAlerts}</span>}
+            </button>
+            <button 
+              className="reports-btn"
+              onClick={() => setShowReports(!showReports)}
+              title="Reports & Analytics"
+            >
+              📊
+            </button>
+            <button 
+              className="help-btn"
+              onClick={() => setShowKeyboardHelp(!showKeyboardHelp)}
+              title="Keyboard Shortcuts (Press ?)"
+            >
+              ❓
+            </button>
             <span className="user-name">{user.username}</span>
             <span className="superadmin-badge">SUPERADMIN</span>
           </div>
@@ -380,6 +450,67 @@ export default function SuperadminDashboard({ user, onLogout, onViewChange }) {
           </div>
         )}
       </div>
+
+      {showAlerts && (
+        <AlertsCenter 
+          user={user}
+          onClose={() => {
+            setShowAlerts(false)
+            fetchUnreadAlerts()
+          }}
+        />
+      )}
+
+      {showReports && (
+        <ReportsAnalytics 
+          user={user}
+          onClose={() => setShowReports(false)}
+        />
+      )}
+
+      {showGuardDashboard && (
+        <GuardDashboard 
+          user={showGuardDashboard}
+          onClose={() => setShowGuardDashboard(null)}
+        />
+      )}
+
+      {showKeyboardHelp && (
+        <div className="keyboard-help-overlay" onClick={() => setShowKeyboardHelp(false)}>
+          <div className="keyboard-help-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="help-header">
+              <h2>⌨️ Keyboard Shortcuts</h2>
+              <button className="help-close" onClick={() => setShowKeyboardHelp(false)}>✕</button>
+            </div>
+            <div className="help-content">
+              <div className="shortcut-group">
+                <h3>Navigation</h3>
+                <div className="shortcut-item">
+                  <span className="shortcut-key">Ctrl + Alt + N</span>
+                  <span className="shortcut-desc">Toggle Notifications/Alerts</span>
+                </div>
+                <div className="shortcut-item">
+                  <span className="shortcut-key">Ctrl + Shift + R</span>
+                  <span className="shortcut-desc">Open Reports & Analytics</span>
+                </div>
+                <div className="shortcut-item">
+                  <span className="shortcut-key">?</span>
+                  <span className="shortcut-desc">Show This Help</span>
+                </div>
+              </div>
+              <div className="shortcut-group">
+                <h3>Tips</h3>
+                <ul>
+                  <li>Click the notification bell (🔔) to view alerts</li>
+                  <li>Click the reports button (📊) to generate custom reports</li>
+                  <li>Use the search bar to quickly find guards</li>
+                  <li>Filter by role to narrow down user lists</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

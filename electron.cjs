@@ -2,6 +2,13 @@ const { app, BrowserWindow, Menu } = require('electron');
 const path = require('path');
 const isDev = require('electron-is-dev');
 
+// Suppress ICU warnings
+process.on('uncaughtException', (error) => {
+  if (!error.message.includes('ICU')) {
+    throw error;
+  }
+});
+
 let mainWindow;
 
 function createWindow() {
@@ -11,8 +18,10 @@ function createWindow() {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      preload: path.join(__dirname, '../preload.js'),
+      preload: path.join(__dirname, '../preload.js'),      enableRemoteModule: false,
     },
+    v8CodeCacheOptions: {
+      mode: 'bypassHeatCheck',    },
   });
 
   const startUrl = isDev

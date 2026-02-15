@@ -1247,6 +1247,384 @@ app.get('/api/firearm-maintenance/:firearmId', async (req, res) => {
   }
 })
 
+// ==================== ALERTS API ====================
+
+// Create alert
+app.post('/api/alerts', async (req, res) => {
+  try {
+    if (!allocationAlertsCollection) {
+      return res.status(503).json({ error: 'Database not connected' })
+    }
+
+    const { type, title, message, guardId, firearmId, priority, relatedId } = req.body
+
+    if (!type || !title || !message) {
+      return res.status(400).json({ error: 'Missing required fields' })
+    }
+
+    const alert = {
+      type, // 'permit_expiry', 'maintenance_due', 'low_stock', 'allocation', 'general'
+      title,
+      message,
+      guardId: guardId || null,
+      firearmId: firearmId || null,
+      priority: priority || 'medium', // 'low', 'medium', 'high', 'critical'
+      relatedId: relatedId || null,
+      isRead: false,
+      createdAt: new Date(),
+      createdBy: req.body.createdBy || 'system'
+    }
+
+    const result = await allocationAlertsCollection.insertOne(alert)
+
+    res.status(201).json({
+      message: 'Alert created successfully',
+      alertId: result.insertedId
+    })
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// Get all alerts (with filtering)
+app.get('/api/alerts', async (req, res) => {
+  try {
+    if (!allocationAlertsCollection) {
+      return res.status(503).json({ error: 'Database not connected' })
+    }
+
+    const { type, priority, isRead, guardId, limit = 50, skip = 0 } = req.query
+    const filter = {}
+
+    if (type) filter.type = type
+    if (priority) filter.priority = priority
+    if (isRead !== undefined) filter.isRead = isRead === 'true'
+    if (guardId) {
+      const { ObjectId } = await import('mongodb')
+      filter.guardId = new ObjectId(guardId)
+    }
+
+    const alerts = await allocationAlertsCollection
+      .find(filter)
+      .sort({ createdAt: -1 })
+      .skip(parseInt(skip))
+      .limit(parseInt(limit))
+      .toArray()
+
+    const total = await allocationAlertsCollection.countDocuments(filter)
+    const unreadCount = await allocationAlertsCollection.countDocuments({ ...filter, isRead: false })
+
+    res.json({
+      total,
+      unreadCount,
+      alerts: alerts.map(a => ({
+        id: a._id,
+        type: a.type,
+        title: a.title,
+        message: a.message,
+        guardId: a.guardId,
+        firearmId: a.firearmId,
+        priority: a.priority,
+        isRead: a.isRead,
+        createdAt: a.createdAt,
+        createdBy: a.createdBy
+      }))
+    })
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// Get alerts for specific user/guard
+app.get('/api/alerts/user/:userId', async (req, res) => {
+  try {
+    if (!allocationAlertsCollection) {
+      return res.status(503).json({ error: 'Database not connected' })
+    }
+
+    const { ObjectId } = await import('mongodb')
+    const { limit = 20, skip = 0 } = req.query
+
+    const alerts = await allocationAlertsCollection
+      .find({ guardId: new ObjectId(req.params.userId) })
+      .sort({ createdAt: -1 })
+      .skip(parseInt(skip))
+      .limit(parseInt(limit))
+      .toArray()
+
+    const unreadCount = await allocationAlertsCollection.countDocuments({
+      guardId: new ObjectId(req.params.userId),
+      isRead: false
+    })
+
+    res.json({
+      total: alerts.length,
+      unreadCount,
+      alerts: alerts.map(a => ({
+        id: a._id,
+        type: a.type,
+        title: a.title,
+        message: a.message,
+        priority: a.priority,
+        isRead: a.isRead,
+        createdAt: a.createdAt
+      }))
+    })
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// Mark alert as read
+app.patch('/api/alerts/:alertId/read', async (req, res) => {
+  try {
+    if (!allocationAlertsCollection) {
+      return res.status(503).json({ error: 'Database not connected' })
+    }
+
+    const { ObjectId } = await import('mongodb')
+
+    const result = await allocationAlertsCollection.updateOne(
+      { _id: new ObjectId(req.params.alertId) },
+      { $set: { isRead: true, readAt: new Date() } }
+    )
+
+    res.json({
+      message: 'Alert marked as read',
+      modifiedCount: result.modifiedCount
+    })
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// Mark multiple alerts as read
+app.patch('/api/alerts/read-multiple', async (req, res) => {
+  try {
+    if (!allocationAlertsCollection) {
+      return res.status(503).json({ error: 'Database not connected' })
+    }
+
+    const { ObjectId } = await import('mongodb')
+    const { alertIds } = req.body
+
+    if (!Array.isArray(alertIds)) {
+      return res.status(400).json({ error: 'alertIds must be an array' })
+    }
+
+    const result = await allocationAlertsCollection.updateMany(
+      { _id: { $in: alertIds.map(id => new ObjectId(id)) } },
+      { $set: { isRead: true, readAt: new Date() } }
+    )
+
+    res.json({
+      message: 'Alerts marked as read',
+      modifiedCount: result.modifiedCount
+    })
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// Delete alert
+app.delete('/api/alerts/:alertId', async (req, res) => {
+  try {
+    if (!allocationAlertsCollection) {
+      return res.status(503).json({ error: 'Database not connected' })
+    }
+
+    const { ObjectId } = await import('mongodb')
+
+    const result = await allocationAlertsCollection.deleteOne(
+      { _id: new ObjectId(req.params.alertId) }
+    )
+
+    res.json({
+      message: 'Alert deleted successfully',
+      deletedCount: result.deletedCount
+    })
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// Clear old alerts (older than 30 days)
+app.delete('/api/alerts/clear-old', async (req, res) => {
+  try {
+    if (!allocationAlertsCollection) {
+      return res.status(503).json({ error: 'Database not connected' })
+    }
+
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+
+    const result = await allocationAlertsCollection.deleteMany({
+      createdAt: { $lt: thirtyDaysAgo },
+      isRead: true
+    })
+
+    res.json({
+      message: 'Old alerts cleared',
+      deletedCount: result.deletedCount
+    })
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// Generate expiring permit alerts
+app.post('/api/alerts/generate/permits-expiring', async (req, res) => {
+  try {
+    if (!guardFirearmPermitsCollection || !allocationAlertsCollection) {
+      return res.status(503).json({ error: 'Database not connected' })
+    }
+
+    const thirtyDaysFromNow = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+    const today = new Date()
+
+    const expiringPermits = await guardFirearmPermitsCollection
+      .find({
+        expiryDate: { $gte: today, $lte: thirtyDaysFromNow },
+        alertSent: false
+      })
+      .toArray()
+
+    let alertsCreated = 0
+
+    for (const permit of expiringPermits) {
+      const daysUntilExpiry = Math.ceil(
+        (permit.expiryDate - today) / (1000 * 60 * 60 * 24)
+      )
+
+      await allocationAlertsCollection.insertOne({
+        type: 'permit_expiry',
+        title: `Permit Expiring Soon`,
+        message: `Firearm permit for guard expires in ${daysUntilExpiry} days`,
+        guardId: permit.guardId,
+        firearmId: permit.firearmId,
+        priority: daysUntilExpiry <= 7 ? 'critical' : 'high',
+        relatedId: permit._id,
+        isRead: false,
+        createdAt: new Date(),
+        createdBy: 'system'
+      })
+
+      // Mark permit as alerted
+      await guardFirearmPermitsCollection.updateOne(
+        { _id: permit._id },
+        { $set: { alertSent: true } }
+      )
+
+      alertsCreated++
+    }
+
+    res.json({
+      message: 'Permit expiry alerts generated',
+      alertsCreated,
+      expiringPermitCount: expiringPermits.length
+    })
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// Generate maintenance due alerts
+app.post('/api/alerts/generate/maintenance-due', async (req, res) => {
+  try {
+    if (!firearmsCollection || !firearmMaintenanceCollection || !allocationAlertsCollection) {
+      return res.status(503).json({ error: 'Database not connected' })
+    }
+
+    const sixtyDaysAgo = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000)
+
+    const firearmsNeedingMaintenance = await firearmsCollection
+      .find({
+        $or: [
+          { lastMaintenanceDate: { $lt: sixtyDaysAgo } },
+          { lastMaintenanceDate: { $exists: false } }
+        ]
+      })
+      .toArray()
+
+    let alertsCreated = 0
+
+    for (const firearm of firearmsNeedingMaintenance) {
+      // Check if alert already exists for this firearm
+      const existingAlert = await allocationAlertsCollection.findOne({
+        type: 'maintenance_due',
+        firearmId: firearm._id,
+        isRead: false
+      })
+
+      if (!existingAlert) {
+        await allocationAlertsCollection.insertOne({
+          type: 'maintenance_due',
+          title: `Firearm Maintenance Due`,
+          message: `Firearm ${firearm.serialNumber} is due for maintenance`,
+          firearmId: firearm._id,
+          priority: 'high',
+          isRead: false,
+          createdAt: new Date(),
+          createdBy: 'system'
+        })
+        alertsCreated++
+      }
+    }
+
+    res.json({
+      message: 'Maintenance due alerts generated',
+      alertsCreated,
+      firearmsNeedingMaintenance: firearmsNeedingMaintenance.length
+    })
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// Generate low stock alerts
+app.post('/api/alerts/generate/low-stock', async (req, res) => {
+  try {
+    if (!firearmsCollection || !allocationAlertsCollection) {
+      return res.status(503).json({ error: 'Database not connected' })
+    }
+
+    const lowStockFirearms = await firearmsCollection
+      .find({ quantity: { $lte: 3 } })
+      .toArray()
+
+    let alertsCreated = 0
+
+    for (const firearm of lowStockFirearms) {
+      const existingAlert = await allocationAlertsCollection.findOne({
+        type: 'low_stock',
+        firearmId: firearm._id,
+        isRead: false
+      })
+
+      if (!existingAlert) {
+        await allocationAlertsCollection.insertOne({
+          type: 'low_stock',
+          title: `Low Firearm Stock`,
+          message: `Only ${firearm.quantity} units of ${firearm.model} remaining`,
+          firearmId: firearm._id,
+          priority: firearm.quantity <= 1 ? 'critical' : 'medium',
+          isRead: false,
+          createdAt: new Date(),
+          createdBy: 'system'
+        })
+        alertsCreated++
+      }
+    }
+
+    res.json({
+      message: 'Low stock alerts generated',
+      alertsCreated,
+      lowStockCount: lowStockFirearms.length
+    })
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
 // Connect to DB and start server
 connectDB().then(() => {
   app.listen(PORT, () => {
