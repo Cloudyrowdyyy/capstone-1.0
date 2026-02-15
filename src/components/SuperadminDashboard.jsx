@@ -228,9 +228,10 @@ export default function SuperadminDashboard({ user, onLogout, onViewChange }) {
 
           <div className="controls">
             <div className="search-box">
+              <label className="search-label">Search Users:</label>
               <input
                 type="text"
-                placeholder="Search by name, email, or phone..."
+                placeholder="Name, email, or phone..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="search-input"
