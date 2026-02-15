@@ -42,15 +42,30 @@ app.post('/api/register', async (req, res) => {
       return res.status(503).json({ error: 'Database not connected' })
     }
     
-    const { email, password, username, role } = req.body
+    const { email, password, username, role, adminCode } = req.body
 
     if (!email || !password || !username || !role) {
       return res.status(400).json({ error: 'All fields are required' })
     }
 
+    // Validate Gmail domain
+    if (!email.endsWith('@gmail.com')) {
+      return res.status(400).json({ error: 'You must use a Gmail account (email must end with @gmail.com)' })
+    }
+
     // Validate role
-    if (!['user', 'admin'].includes(role)) {
+    if (!["user", "admin"].includes(role)) {
       return res.status(400).json({ error: 'Role must be "user" or "admin"' })
+    }
+
+    // Validate admin code if admin role
+    if (role === 'admin') {
+      if (!adminCode) {
+        return res.status(400).json({ error: 'Admin code is required' })
+      }
+      if (adminCode !== '122601') {
+        return res.status(400).json({ error: 'Invalid admin code' })
+      }
     }
 
     // Check if user exists
