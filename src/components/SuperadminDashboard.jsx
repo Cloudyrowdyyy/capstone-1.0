@@ -237,6 +237,7 @@ export default function SuperadminDashboard({ user, onLogout, onViewChange }) {
               />
             </div>
             <div className="filter-box">
+              <label className="filter-label">Filter by Role:</label>
               <select
                 value={filterRole}
                 onChange={(e) => setFilterRole(e.target.value)}
