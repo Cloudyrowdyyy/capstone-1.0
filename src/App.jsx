@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import LoginPage from './components/LoginPage'
 import AdminDashboard from './components/AdminDashboard'
+import SuperadminDashboard from './components/SuperadminDashboard'
 import UserDashboard from './components/UserDashboard'
 import './App.css'
 
@@ -22,7 +23,9 @@ function App() {
     <div className="app">
       {!isLoggedIn ? (
         <LoginPage onLogin={handleLogin} />
-      ) : user?.role === 'admin' || user?.role === 'superadmin' ? (
+      ) : user?.role === 'superadmin' ? (
+        <SuperadminDashboard user={user} onLogout={handleLogout} />
+      ) : user?.role === 'admin' ? (
         <AdminDashboard user={user} onLogout={handleLogout} />
       ) : (
         <UserDashboard user={user} onLogout={handleLogout} />
