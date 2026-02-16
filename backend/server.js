@@ -4,6 +4,8 @@ import dotenv from 'dotenv'
 import { MongoClient } from 'mongodb'
 import bcrypt from 'bcryptjs'
 import nodemailer from 'nodemailer'
+import replacementSystem from './guard-replacement-system.js'
+import guardReplacementRoutes from './routes/guard-replacement.routes.js'
 
 dotenv.config()
 
@@ -81,6 +83,10 @@ async function connectDB() {
     guardFirearmPermitsCollection = db.collection('guard_firearm_permits')
     firearmMaintenanceCollection = db.collection('firearm_maintenance')
     allocationAlertsCollection = db.collection('allocation_alerts')
+    
+    // Initialize Guard Replacement System
+    await replacementSystem.initializeReplacementSystem()
+    console.log('✓ Guard Replacement System initialized')
   } catch (error) {
     console.warn('⚠ MongoDB connection failed:', error.message)
     console.warn('⚠ Running in offline mode - database features disabled')
@@ -1739,6 +1745,9 @@ app.post('/api/alerts/generate/low-stock', async (req, res) => {
     res.status(500).json({ error: error.message })
   }
 })
+
+// Mount Guard Replacement System Routes
+app.use('/api', guardReplacementRoutes)
 
 // Connect to DB and start server
 connectDB().then(() => {
