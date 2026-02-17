@@ -44,7 +44,12 @@ const EditUserModal: FC<EditUserModalProps> = ({ user, onClose, onSave }) => {
     setError('')
 
     try {
-      await onSave(formData)
+      await onSave({
+        full_name: formData.fullName,
+        phone_number: formData.phoneNumber,
+        license_number: formData.licenseNumber,
+        license_expiry_date: formData.licenseExpiryDate,
+      })
       onClose()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update user')

@@ -18,10 +18,9 @@ interface User {
 interface AdminDashboardProps {
   user: User
   onLogout: () => void
-  onViewChange?: (view: string) => void
 }
 
-const AdminDashboard: FC<AdminDashboardProps> = ({ onLogout, onViewChange }) => {
+const AdminDashboard: FC<AdminDashboardProps> = ({ onLogout }) => {
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<string>('')
@@ -45,12 +44,6 @@ const AdminDashboard: FC<AdminDashboardProps> = ({ onLogout, onViewChange }) => 
       setError('Error loading users: ' + (err instanceof Error ? err.message : String(err)))
     } finally {
       setLoading(false)
-    }
-  }
-
-  const handleViewChange = (view: string) => {
-    if (onViewChange) {
-      onViewChange(view)
     }
   }
 
