@@ -49,6 +49,6 @@
 
 @media (max-width: 480px) {
   .logo {
-    max-width: 100px;
+    max-width: 100%;
   }
 }
