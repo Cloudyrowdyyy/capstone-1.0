@@ -1,6 +1,14 @@
 {
   "$schema": "https://railway.json.schema",
   "services": {
+    "postgres": {
+      "image": "postgres:15-alpine",
+      "variables": {
+        "POSTGRES_USER": "postgres",
+        "POSTGRES_PASSWORD": "${{ secrets.DB_PASSWORD }}",
+        "POSTGRES_DB": "railway"
+      }
+    },
     "backend": {
       "dockerfile": "./backend-rust/Dockerfile",
       "buildCommand": "",
@@ -10,7 +18,7 @@
         "SERVER_PORT": "$PORT",
         "ADMIN_CODE": "122601",
         "RUST_LOG": "info",
-        "DATABASE_URL": "postgresql://${{ services.postgres.variables.POSTGRES_USER }}:${{ services.postgres.variables.POSTGRES_PASSWORD }}@${{ services.postgres.variables.PGHOST }}:${{ services.postgres.variables.PGPORT }}/${{ services.postgres.variables.POSTGRES_DB }}"
+        "DATABASE_URL": "${{ services.postgres.variables.DATABASE_PUBLIC_URL }}"
       }
     },
     "frontend": {
@@ -18,14 +26,6 @@
       "startCommand": "npm run preview",
       "variables": {
         "VITE_API_URL": "${{ services.backend.public.url }}"
-      }
-    },
-    "postgres": {
-      "image": "postgres:15-alpine",
-      "variables": {
-        "POSTGRES_USER": "postgres",
-        "POSTGRES_PASSWORD": "${{ secrets.DB_PASSWORD }}",
-        "POSTGRES_DB": "railway"
       }
     }
   }
