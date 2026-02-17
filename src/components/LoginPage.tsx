@@ -250,7 +250,6 @@ const LoginPage: FC<LoginPageProps> = ({ onLogin }) => {
     <div className="login-container">
       <div className="page-header" style={{ display: isRegistering ? 'none' : 'flex' }}>
         <Logo onClick={() => {}} />
-        <span className="agency-name">Davao Security & Investigation Agency Inc.</span>
       </div>
       <div className="login-wrapper">
         <div className="login-left">

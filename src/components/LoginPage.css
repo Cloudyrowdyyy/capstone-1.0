@@ -24,19 +24,11 @@
 }
 
 .page-header svg {
-  width: 35px;
-  height: 35px;
+  width: 200px;
+  height: auto;
   flex-shrink: 0;
 }
 
-.agency-name {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: black;
-  line-height: 1.2;
-  max-width: 200px;
-  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
-}
 
 .login-wrapper {
   display: flex;
