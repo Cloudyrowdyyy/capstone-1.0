@@ -1,5 +1,5 @@
 import { useState, FC } from 'react'
-import './EditUserModal.css'
+import '../styles/EditUserModal.css'
 
 interface User {
   id: string

@@ -1,7 +1,6 @@
 import { useState, useEffect, FC } from 'react'
 import Logo from './Logo'
 import EditUserModal from './EditUserModal'
-import '../styles/EditUserModal.css'
 import './AdminDashboard.css'
 
 interface User {
