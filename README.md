@@ -179,15 +179,21 @@ curl -X POST http://localhost:5000/api/login \
 
 For development testing, use these pre-configured accounts:
 
-**Admin/Superadmin Account:**
-- Email: `dkgagaamain@gmail.com`
-- Password: `december262001`
-- Role: Admin/Superadmin (full access)
+**Admin Account:**
+- Username: `admin`
+- Email: `admin@gmail.com`
+- Password: `admin123`
+- Role: Admin (full access)
+- Phone: +63-900-000-0001
 
-**Guard User Account:**
-- Email: `testguard2025@gmail.com`
-- Password: `TestPass123!`
-- Role: Guard (limited access)
+**User Account:**
+- Username: `user`
+- Email: `user@gmail.com`
+- Password: `user123`
+- Role: User (limited access)
+- Phone: +639000000002
+
+**Login Methods:** All accounts support login via username, email, or phone number
 
 ## Security Features
 
