@@ -9,13 +9,16 @@
         "SERVER_HOST": "0.0.0.0",
         "SERVER_PORT": "$PORT",
         "ADMIN_CODE": "122601",
-        "RUST_LOG": "info"
+        "RUST_LOG": "info",
+        "DATABASE_URL": "${{ services.postgres.variables.DATABASE_URL }}"
       }
     },
     "frontend": {
       "buildCommand": "npm install && npm run build",
       "startCommand": "npm run preview",
-      "variables": {}
+      "variables": {
+        "VITE_API_URL": "${{ services.backend.public.url }}"
+      }
     },
     "postgres": {
       "image": "postgres:15-alpine",
