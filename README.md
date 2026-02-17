@@ -181,13 +181,7 @@ npm test -- --coverage
 
 ---
 
-## 📊 Example Login Credentials
-
-Check `TEST_ACCOUNTS.md` for test account credentials.
-
----
-
-## 🐛 Troubleshooting
+##  Troubleshooting
 
 ### Backend won't start
 - Ensure PostgreSQL is running
@@ -208,7 +202,6 @@ Check `TEST_ACCOUNTS.md` for test account credentials.
 ## 📖 Documentation
 
 - **[DOCUMENTATION.md](DOCUMENTATION.md)** - Comprehensive technical documentation
-- **[TEST_ACCOUNTS.md](TEST_ACCOUNTS.md)** - Example login credentials
 
 ---
 
