@@ -25,9 +25,7 @@
       "variables": {
         "POSTGRES_USER": "postgres",
         "POSTGRES_PASSWORD": "${{ secrets.DB_PASSWORD }}",
-        "POSTGRES_DB": "guard_firearm_system",
-        "PGHOST": "${{ services.postgres.host }}",
-        "PGPORT": "${{ services.postgres.port }}"
+        "POSTGRES_DB": "railway"
       }
     }
   }
