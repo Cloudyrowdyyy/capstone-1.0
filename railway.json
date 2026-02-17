@@ -10,7 +10,8 @@
       }
     },
     "backend": {
-      "dockerfile": "./backend-rust/Dockerfile",
+      "rootDirectory": "backend-rust",
+      "dockerfile": "Dockerfile",
       "buildCommand": "",
       "startCommand": "/app/server",
       "variables": {
