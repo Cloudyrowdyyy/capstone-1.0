@@ -4,6 +4,8 @@
 
 A modern, full-stack web application designed to streamline asset allocation, inventory management, and scheduling operations. Built with React, TypeScript, Rust, and PostgreSQL for performance, reliability, and scalability.
 
+**📖 [View Full Documentation](https://cloudyrowdyyy.github.io/capstone-1.0)** ← Start here!
+
 ---
 
 ## 🚀 Features
@@ -199,7 +201,13 @@ npm test -- --coverage
 
 ---
 
-## 📖 Documentation
+**Complete documentation is available at:** [`https://cloudyrowdyyy.github.io/capstone-1.0`](https://cloudyrowdyyy.github.io/capstone-1.0)
+
+The documentation site includes:
+- **Installation & Setup** - Step-by-step installation guide
+- **API Reference** - Complete API documentation
+- **Deployment Guide** - Railway & local deployment instructions
+- **Features Overview** - Core modules and capabilities
 
 - **[DOCUMENTATION.md](DOCUMENTATION.md)** - Comprehensive technical documentation
 
