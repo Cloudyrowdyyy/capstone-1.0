@@ -1,4 +1,4 @@
-# Davao Security & Investigation Agency - Guard Firearm Management System
+# DASIA AIO Management System
 
 A comprehensive web & desktop application for managing firearm inventory, allocation, maintenance, and guard scheduling with role-based access control.
 
