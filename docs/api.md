@@ -1,6 +1,7 @@
 ---
 layout: default
 title: API Reference
+permalink: /api/
 ---
 
 # API Reference
